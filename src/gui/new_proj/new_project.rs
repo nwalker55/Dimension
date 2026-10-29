@@ -77,7 +77,7 @@ impl NewProjVars {
 
 // Later, the project_create will not just be a text file, and will include the project contents in a different format
 fn project_create(proj_name: String) -> Result<()> {
-    let path_name: String = format!("../../../Projects/{}", proj_name);
+    let path_name: String = format!("Projects/{}", proj_name);
     let _ = File::create(path_name)?;
 
 

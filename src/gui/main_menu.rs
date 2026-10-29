@@ -3,7 +3,7 @@ use std::sync::mpsc::{channel, Receiver, Sender};
 use std::sync::{Arc, Mutex};
 
 use crate::gui::new_proj::new_project;
-use crate::gui::open_project;
+use crate::gui::open_proj::open_project;
 
 // Start main menu
 pub fn menu() -> eframe::Result<()> {
