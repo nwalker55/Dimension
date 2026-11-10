@@ -1,3 +1,5 @@
+pub mod load_window;
 pub mod main_menu;
-mod open_proj;
-mod new_proj;
+pub mod new_proj;
+pub mod open_proj;
+pub mod proj_editor;

@@ -1,48 +1,28 @@
 use eframe::egui;
 use std::sync::mpsc::Sender;
-use std::{fs, io};
-use std::path::{PathBuf, Path};
-use std::io::Result;
+use std::{fs, io::Result, path::PathBuf};
 
-// Define custom events to send back to the main window
+use crate::gui::load_window::{self, ProjectWindowEvent};
+
 pub enum OpenWindowEvent {
     CloseRequested,
-    // Add other events here, e.g., DataUpdated(String)
 }
 
-pub struct OpenProjVars {
-    selected: String,
-}
-
-impl OpenProjVars {
-    pub fn new() -> Self {
-        Self {
-            selected: String::new(),
-        }
-    }
-
-    pub fn set_selected(&mut self, selected: String) {
-        self.selected = selected;
-    }
-}
-
-
-/// Renders the viewport content. This function is called every frame inside the closure.
-pub fn open_show(ctx: &egui::Context, tx_open: Sender<OpenWindowEvent>) -> Result<()> {
-    let mut open_vars = OpenProjVars::new();
+pub fn open_show(
+    ctx: &egui::Context,
+    tx_open: Sender<OpenWindowEvent>,
+    tx_load: Sender<ProjectWindowEvent>,
+) -> Result<()> {
     let mut result = Ok(());
 
     egui::CentralPanel::default().show(ctx, |ui| {
-        ui.heading("Open Project");
+        ui.heading("Select Project to Open:\n");
 
-
-        let projects: Vec<PathBuf> = match fs::read_dir("./Projects")
-            .and_then(|entries| {
-                entries
-                    .map(|res| res.map(|e| e.path()))
-                    .collect::<io::Result<Vec<_>>>()
-            })
-        {
+        let projects: Vec<PathBuf> = match fs::read_dir("./Projects").and_then(|entries| {
+            entries
+                .map(|res| res.map(|e| e.path()))
+                .collect::<Result<Vec<_>>>()
+        }) {
             Ok(paths) => paths,
             Err(reason) => {
                 ui.label(format!("Could not read files from directory: {}", reason));
@@ -50,30 +30,22 @@ pub fn open_show(ctx: &egui::Context, tx_open: Sender<OpenWindowEvent>) -> Resul
                 return;
             }
         };
-        let mut project: &PathBuf = &PathBuf::new();
+        for project in projects {
+            let project_name = project
+                .file_name()
+                .and_then(|name| name.to_str())
+                .unwrap_or("Unnamed project");
 
-        let mut path_vars: Vec<egui::Response> = Vec::new();
-        for (i, proj) in projects.iter().enumerate() {
-            path_vars.push(ui.button(format!("{}", proj.display().to_string().replace("./Projects/", ""))));
-
-            if let Some(index) = path_vars.iter().position(|r| r.clicked()) {
-                project = &projects[index];
-
-
-                open_vars.set_selected(String::from(format!("Selected project: {}", project.display())));
+            if ui.button(project_name).clicked() {
+                load_window::request_open(ctx, &tx_load, project.clone());
+                let _ = tx_open.send(OpenWindowEvent::CloseRequested);
             }
         }
-        if !project.display().to_string().is_empty() {
-            println!("{}", open_vars.selected);
-        }
-
-
-
     });
     if ctx.input(|i| i.viewport().close_requested()) {
         let _ = tx_open.send(OpenWindowEvent::CloseRequested);
+        load_window::request_parent_repaint(ctx);
     }
 
     result
-
 }
