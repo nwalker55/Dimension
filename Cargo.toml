@@ -7,5 +7,6 @@ authors = ["Niall Walker"]
 # See more keys and their definitions at https://doc.rust-lang.org/cargo/reference/manifest.html
 
 [dependencies]
-eframe = "0.29"
+eframe = { version = "0.29", features = ["wgpu"] }
 egui = "0.29"
+bytemuck = { version = "1.25", features = ["derive"] }

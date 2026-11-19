@@ -9,11 +9,15 @@ use std::path::PathBuf;
 
 // Start main menu
 pub fn menu() -> eframe::Result<()> {
-    let native_options = eframe::NativeOptions::default();
+    let native_options = eframe::NativeOptions {
+        renderer: eframe::Renderer::Wgpu,
+        depth_buffer: 24,
+        ..Default::default()
+    };
     eframe::run_native(
         "Dimension Game Engine",
         native_options,
-        Box::new(|_cc| Ok(Box::new(DimensionVars::new()))),
+        Box::new(|cc| Ok(Box::new(DimensionVars::new(cc)))),
     )
 }
 
@@ -28,13 +32,19 @@ struct DimensionVars {
     rx_load: Receiver<ProjectWindowEvent>,
     loaded_project: Option<PathBuf>,
     new_proj_vars: Arc<Mutex<new_project::NewProjVars>>,
+    render_target_format: eframe::wgpu::TextureFormat,
 }
 
 impl DimensionVars {
-    fn new() -> Self {
+    fn new(cc: &eframe::CreationContext<'_>) -> Self {
         let (tx_new, rx_new) = channel();
         let (tx_open, rx_open) = channel();
         let (tx_load, rx_load) = channel();
+        let render_target_format = cc
+            .wgpu_render_state
+            .as_ref()
+            .expect("eframe WGPU renderer should provide a render state")
+            .target_format;
 
         Self {
             show_new_proj_window: false,
@@ -47,6 +57,7 @@ impl DimensionVars {
             rx_load,
             loaded_project: None,
             new_proj_vars: Arc::new(Mutex::new(new_project::NewProjVars::new())),
+            render_target_format,
         }
     }
 }
@@ -133,6 +144,7 @@ impl eframe::App for DimensionVars {
 
         if let Some(path) = self.loaded_project.clone() {
             let tx_load = self.tx_load.clone();
+            let render_target_format = self.render_target_format;
             let project_name = path
                 .file_name()
                 .and_then(|name| name.to_str())
@@ -145,7 +157,7 @@ impl eframe::App for DimensionVars {
                     .with_inner_size([1000.0, 700.0]),
                 move |ctx, class| {
                     assert!(class == egui::ViewportClass::Deferred);
-                    load_window::show(ctx, path.clone(), tx_load.clone());
+                    load_window::show(ctx, path.clone(), tx_load.clone(), render_target_format);
                 },
             );
         }

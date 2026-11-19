@@ -23,8 +23,13 @@ pub fn request_parent_repaint(ctx: &egui::Context) {
 }
 
 /// Draw the project editor inside its own eframe viewport.
-pub fn show(ctx: &egui::Context, path: PathBuf, tx: Sender<ProjectWindowEvent>) {
-    if let Err(error) = main(path, ctx) {
+pub fn show(
+    ctx: &egui::Context,
+    path: PathBuf,
+    tx: Sender<ProjectWindowEvent>,
+    render_target_format: eframe::wgpu::TextureFormat,
+) {
+    if let Err(error) = main(path, ctx, render_target_format) {
         egui::CentralPanel::default().show(ctx, |ui| {
             ui.heading("Could not load project");
             ui.label(error.to_string());
